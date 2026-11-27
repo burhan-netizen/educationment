@@ -314,6 +314,7 @@ footer{color:rgba(255,255,255,.72)}
 .step .card p{margin-bottom:22px}
 .step .big{top:14px;right:20px;bottom:auto;font-size:84px;-webkit-text-stroke:1px rgba(255,255,255,.1)}
 @media (max-width:900px){.step .node{display:none}.steps{row-gap:20px;padding-top:0}}
-/* footer contact: icons never shrink, long email wraps cleanly */
-.f-contact a{min-width:0;overflow-wrap:anywhere}
+/* footer contact: icons never shrink, email stays on one line */
+.f-contact a{white-space:nowrap}
+@media (min-width:1101px){.f-grid.f5{grid-template-columns:1.3fr 1fr 1fr .9fr max-content}}
 .f-contact a svg{flex:none;width:18px;height:18px}
