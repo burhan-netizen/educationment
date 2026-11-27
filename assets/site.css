@@ -593,6 +593,9 @@ a.svc{color:inherit}
 .legal ul{margin:12px 0 0 22px;display:grid;gap:8px}
 .legal .updated{font-size:13px;font-weight:600;color:var(--muted)}
 
+/* scroll reveal: moves with `translate`, leaving `transform` free for hover effects */
+.rv{--ry:0px;translate:0 var(--ry)}
+
 /* photography */
 .ph-bg{position:absolute;inset:0;z-index:-4;background-size:cover;background-position:center;opacity:.32;filter:saturate(.55) contrast(1.05);-webkit-mask-image:linear-gradient(100deg,transparent 18%,#000 62%);mask-image:linear-gradient(100deg,transparent 18%,#000 62%)}
 .photo-band{background:var(--paper);padding:0 0 clamp(70px,9vw,120px)}

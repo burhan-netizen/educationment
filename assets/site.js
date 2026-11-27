@@ -5,6 +5,12 @@ const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [..
 function toast(msg){ const t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),3600); }
 window.toast = toast;
 
+/* canvases only redraw while on screen, so scrolling stays smooth */
+const onScreen = new WeakMap();
+const visIO = 'IntersectionObserver' in window ? new IntersectionObserver(es=>es.forEach(e=>onScreen.set(e.target,e.isIntersecting)),{rootMargin:'120px'}) : null;
+const watch = el => { if(visIO){ onScreen.set(el,false); visIO.observe(el); } };
+const hidden = el => onScreen.get(el)===false;
+
 /* ---------- quote forms: send by WhatsApp or email ---------- */
 // web3key: paste the Web3Forms access key here to email every quote request to the inbox automatically
 const CONTACT = { wa:'918849724179', email:'educationment.in@gmail.com', web3key:'f97c0d3a-3ec3-4cf6-b778-f1fac45570f7' };
@@ -149,7 +155,9 @@ $$('canvas.grid').forEach(c=>{
   c.parentElement.addEventListener('pointermove',e=>{ const r=c.getBoundingClientRect(); mx=e.clientX-r.left; my=e.clientY-r.top; });
   c.parentElement.addEventListener('pointerleave',()=>{mx=my=-999});
   const G=34;
+  watch(c);
   (function draw(){
+    if(hidden(c)){ requestAnimationFrame(draw); return; }
     x.clearRect(0,0,w,h); t+=0.006;
     for(let gx=G/2; gx<w; gx+=G) for(let gy=G/2; gy<h; gy+=G){
       const d=Math.hypot(gx-mx,gy-my), near=Math.max(0,1-d/220);
@@ -204,7 +212,9 @@ $$('canvas.grid').forEach(c=>{
   });
   const routes=PLACES.slice(0,7).map(p=>({p,interp:d3.geoInterpolate(HUB,p.ll)}));
   const t0=performance.now();
+  watch(c);
   function frame(now){
+    if(hidden(c)){ requestAnimationFrame(frame); return; }
     const t=(now-t0)/1000;
     if(target){ const dl=((target[0]-lambda+540)%360)-180; lambda+=dl*0.08; phi+=(target[1]-phi)*0.08; }
     else if(!dragging){ lambda+=0.09; phi+=(-18-phi)*0.01; }
@@ -258,7 +268,9 @@ $$('canvas.cta-lines').forEach(c=>{
   const x=c.getContext('2d'); let w,h,dpr,t=0;
   function size(){ dpr=Math.min(devicePixelRatio,2); w=c.clientWidth; h=c.clientHeight; c.width=w*dpr; c.height=h*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
   size(); addEventListener('resize',size);
+  watch(c);
   (function draw(){
+    if(hidden(c)){ requestAnimationFrame(draw); return; }
     t+=0.004; x.clearRect(0,0,w,h);
     for(let i=0;i<22;i++){
       x.beginPath();
@@ -307,7 +319,7 @@ if (window.gsap && !reduced) {
   gsap.registerPlugin(ScrollTrigger);
   const has=s=>!!$(s);
   if (window.Lenis){
-    const lenis=new Lenis({duration:1.15,smoothWheel:true});
+    const lenis=new Lenis({lerp:0.12,smoothWheel:true,wheelMultiplier:1});
     lenis.on('scroll',ScrollTrigger.update);
     gsap.ticker.add(t=>lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0);
     $$('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{ const id=a.getAttribute('href'); if(id.length>1 && $(id)){ e.preventDefault(); lenis.scrollTo(id,{offset:-90}); } }));
@@ -361,9 +373,13 @@ if (window.gsap && !reduced) {
     walk(h);
     gsap.from($$('.wi',h),{yPercent:110,duration:1.1,ease:'expo.out',stagger:.035,scrollTrigger:{trigger:h,start:'top 85%'}});
   });
-  $$('.reveal').forEach(el=>gsap.from(el,{y:30,opacity:0,duration:1,ease:'expo.out',scrollTrigger:{trigger:el,start:'top 92%'}}));
-  $$('.reveal-group').forEach(g=>gsap.from(g.children,{y:40,opacity:0,duration:1,ease:'expo.out',stagger:.07,scrollTrigger:{trigger:g,start:'top 88%'}}));
-  $$('.svc-grid').forEach(g=>gsap.from($$('.svc',g),{y:60,opacity:0,duration:1.1,ease:'expo.out',stagger:.07,scrollTrigger:{trigger:g,start:'top 85%'}}));
+  // Entrance motion uses the independent CSS `translate` property (via --ry), never `transform`,
+  // so it can't fight the hover lift / tilt transitions that cards apply to `transform`.
+  $$('.reveal, .reveal-group > *, .svc, .step').forEach(el=>el.classList.add('rv'));
+  const rise=(targets,dist,extra)=>gsap.from(targets,{'--ry':dist+'px',opacity:0,ease:'expo.out',clearProps:'--ry,opacity',...extra});
+  $$('.reveal').forEach(el=>rise(el,30,{duration:1,scrollTrigger:{trigger:el,start:'top 92%'}}));
+  $$('.reveal-group').forEach(g=>rise(g.children,40,{duration:1,stagger:.07,scrollTrigger:{trigger:g,start:'top 88%'}}));
+  $$('.svc-grid').forEach(g=>rise($$('.svc',g),60,{duration:1.1,stagger:.07,scrollTrigger:{trigger:g,start:'top 85%'}}));
   if(has('.chapters')) gsap.from('.chapters li',{x:-20,opacity:0,duration:.8,ease:'expo.out',stagger:.1,scrollTrigger:{trigger:'.chapters',start:'top 85%'}});
 
   $$('.count').forEach(el=>{ const to=+el.dataset.to, o={v:0};
@@ -381,7 +397,7 @@ if (window.gsap && !reduced) {
   if(has('#steps')){
     gsap.to('.steps .rail i',{scaleX:1,ease:'none',scrollTrigger:{trigger:'#steps',start:'top 75%',end:'bottom 55%',scrub:true}});
     $$('.step').forEach((s,i)=>ScrollTrigger.create({trigger:'#steps',start:()=>`top+=${i*40} 70%`,onEnter:()=>s.classList.add('on'),onLeaveBack:()=>s.classList.remove('on')}));
-    gsap.from('.step',{y:50,opacity:0,duration:1,ease:'expo.out',stagger:.12,scrollTrigger:{trigger:'#steps',start:'top 80%'}});
+    rise('.step',50,{duration:1,stagger:.12,scrollTrigger:{trigger:'#steps',start:'top 80%'}});
   }
   if(has('.seal .spin')) gsap.to('.seal .spin',{rotate:360,duration:20,repeat:-1,ease:'none'});
   if(has('.cta-box')) gsap.from('.cta-box',{scale:.92,duration:1.4,ease:'expo.out',scrollTrigger:{trigger:'.cta-box',start:'top 85%'}});
