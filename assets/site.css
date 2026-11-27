@@ -269,7 +269,7 @@ section{position:relative}
 .why-left .lead{margin:24px 0 34px}
 .guarantee{position:relative;border-radius:26px;padding:30px;background:linear-gradient(135deg,var(--navy-900),var(--navy-700));color:#fff;overflow:hidden}
 .guarantee .seal{width:104px;height:104px;position:relative;z-index:1;overflow:visible}
-.guarantee .seal text{font-family:var(--sans);font-size:8.6px;font-weight:800;fill:#fff}
+.guarantee .seal text{font-family:var(--sans);font-size:8.6px;font-weight:800;fill:#fff;letter-spacing:1.4px}
 .guarantee h3{font-size:26px;margin:18px 0 8px;position:relative;z-index:1}
 .guarantee p{color:rgba(255,255,255,.7);font-size:15px;position:relative;z-index:1}
 .why-list{display:grid;grid-template-columns:1fr 1fr;gap:16px}
