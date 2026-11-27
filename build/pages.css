@@ -307,3 +307,9 @@ footer{color:rgba(255,255,255,.72)}
 .lite .ph-card{background:linear-gradient(180deg,#12264a,#0b1c3c)}
 .lite .nav.scrolled{background:rgba(5,15,39,.96)}
 .lite .hero .orb{filter:blur(60px)}
+
+/* How it works: chips aligned along the bottom, step numbers fully inside the card */
+.step .card{display:flex;flex-direction:column;align-items:flex-start}
+.step .card .tag{margin-top:auto}
+.step .card p{margin-bottom:22px}
+.step .big{top:14px;right:20px;bottom:auto;font-size:84px;-webkit-text-stroke:1px rgba(255,255,255,.1)}
