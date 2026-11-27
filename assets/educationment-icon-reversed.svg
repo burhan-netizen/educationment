@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><g transform="translate(17.276073619631916 39.95484662576689) scale(1.1936196319018404)">
+  <g class="book">
+    <g>
+    <path d="M200 318 C176 292 132 278 70 282 L58 306 C122 298 172 310 200 340 Z" fill="#FFFFFF"/>
+    <path d="M200 252 C192 222 150 190 84 192 C80 222 76 252 70 282 C132 278 176 292 200 318 Z"
+          fill="#0B1D3D" stroke="#FFFFFF" stroke-width="11" stroke-linejoin="round"/>
+    <path d="M176 250 C162 233 136 222 104 222" fill="none" stroke="#7FB0FF" stroke-width="6" stroke-linecap="round"/>
+    <path d="M176 276 C160 260 134 251 100 251" fill="none" stroke="#7FB0FF" stroke-width="6" stroke-linecap="round"/></g>
+    <g transform="translate(400 0) scale(-1 1)">
+    <path d="M200 318 C176 292 132 278 70 282 L58 306 C122 298 172 310 200 340 Z" fill="#FFFFFF"/>
+    <path d="M200 252 C192 222 150 190 84 192 C80 222 76 252 70 282 C132 278 176 292 200 318 Z"
+          fill="#0B1D3D" stroke="#FFFFFF" stroke-width="11" stroke-linejoin="round"/>
+    <path d="M176 250 C162 233 136 222 104 222" fill="none" stroke="#7FB0FF" stroke-width="6" stroke-linecap="round"/>
+    <path d="M176 276 C160 260 134 251 100 251" fill="none" stroke="#7FB0FF" stroke-width="6" stroke-linecap="round"/></g>
+  </g>
+  <mask id="em-nibcut" maskUnits="userSpaceOnUse" x="150" y="140" width="100" height="180">
+    <rect x="150" y="140" width="100" height="180" fill="#fff"/>
+    <line x1="200" y1="222" x2="200" y2="304" stroke="#000" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="200" cy="214" r="9.5" fill="#000"/>
+  </mask>
+  <g class="nib" mask="url(#em-nibcut)">
+    <path d="M168 166 H232 L233 180 C233 218 215 252 200 306 C185 252 167 218 167 180 Z" fill="#FF8A2B"/>
+    <path d="M200 166 H232 L233 180 C233 218 215 252 200 306 Z" fill="#E56A12"/>
+  </g>
+  <path d="M162 150 H238 L233 168 H167 Z" fill="#FFFFFF"/>
+  <g class="cap">
+    <path d="M138 92 L138 138 C172 156 228 156 262 138 L262 92 Z" fill="#DCE5F3"/>
+    <path d="M84 70 L200 116 L316 70 L316 79 L200 125 L84 79 Z" fill="#B9C8E0"/>
+    <path d="M200 24 L316 70 L200 116 L84 70 Z" fill="#FFFFFF"/>
+    <path d="M200 70 L292 79 V128" fill="none" stroke="#FF8A2B" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M285 124 H299 L303 150 C296 157 288 157 281 150 Z" fill="#FF8A2B"/>
+    <circle cx="200" cy="70" r="7" fill="#FF8A2B"/>
+  </g></g></svg>
