@@ -738,3 +738,4 @@ footer{color:rgba(255,255,255,.72)}
 .step .card .tag{margin-top:auto}
 .step .card p{margin-bottom:22px}
 .step .big{top:14px;right:20px;bottom:auto;font-size:84px;-webkit-text-stroke:1px rgba(255,255,255,.1)}
+@media (max-width:900px){.step .node{display:none}.steps{row-gap:20px;padding-top:0}}
