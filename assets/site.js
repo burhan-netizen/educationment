@@ -535,7 +535,7 @@ if (window.gsap && !reduced) {
     $$('.step').forEach((s,i)=>ScrollTrigger.create({trigger:'#steps',start:()=>`top+=${i*40} 70%`,onEnter:()=>s.classList.add('on'),onLeaveBack:()=>s.classList.remove('on')}));
     rise('.step',50,{duration:1,stagger:.12,scrollTrigger:{trigger:'#steps',start:'top 80%'}});
   }
-  if(has('.seal .spin')) gsap.to('.seal .spin',{rotate:360,duration:20,repeat:-1,ease:'none'});
+  if(has('.seal .spin')) gsap.to('.seal .spin',{rotation:360,svgOrigin:'50 50',duration:20,repeat:-1,ease:'none'});
   if(has('.cta-box')) gsap.from('.cta-box',{scale:.92,duration:1.4,ease:'expo.out',scrollTrigger:{trigger:'.cta-box',start:'top 85%'}});
 } else {
   $$('.count').forEach(el=>el.textContent=(+el.dataset.to).toLocaleString('en'));
