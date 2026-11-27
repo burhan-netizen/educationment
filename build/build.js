@@ -422,7 +422,7 @@ function pageHero({ crumbs, eyebrow, h1, lead, side, solo, ctas = true, R, bg })
   return `<section class="hero page-hero">
   ${bg ? `<div class="ph-bg" style="background-image:url('${bg}')" aria-hidden="true"></div>` : ''}
   <canvas class="grid" aria-hidden="true"></canvas>
-  <div class="orb o1"></div><div class="orb o2"></div>
+  <div class="orb o1"></div>
   <div class="wrap ph-grid${solo ? ' solo' : ''}">
     <div>
       <nav class="crumbs ph-in" aria-label="Breadcrumb">${cr}</nav>

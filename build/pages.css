@@ -79,7 +79,6 @@
 .chips .dot{width:7px;height:7px;border-radius:50%;background:var(--orange)}
 .chips a svg{width:16px;height:16px;color:var(--orange)}
 .recv{position:relative;border-radius:30px;padding:40px;background:linear-gradient(140deg,var(--navy-900),var(--navy-700));color:#fff;overflow:hidden;isolation:isolate}
-.recv::after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;background:var(--orange);filter:blur(90px);opacity:.3;right:-100px;top:-100px;z-index:-1}
 .recv h3{font-size:26px;margin-bottom:22px}
 .recv ul{list-style:none;display:grid;gap:14px;margin-bottom:30px}
 .recv li{display:flex;gap:14px;align-items:flex-start;font-size:15.5px;color:rgba(255,255,255,.85)}
@@ -213,4 +212,13 @@ a.svc{color:inherit}
   .subj{flex-direction:column;gap:16px;padding:24px}
   .contact-form,.recv,.bigquote{padding:28px 22px}
   .ph-stats b{font-size:26px}
+}
+
+/* keep menu items on one line at laptop widths */
+.nav ul > li > a{white-space:nowrap}
+@media (max-width:1240px) and (min-width:901px){
+  .nav ul{gap:2px}
+  .nav ul > li > a{padding:10px 11px;font-size:14px}
+  .nav .btn{padding:12px 16px;font-size:14px}
+  .nav .logo{height:52px}
 }
