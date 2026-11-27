@@ -398,6 +398,8 @@ function scripts(R, globe) {
 
 const CHECK_CHIP = t => `<span>${ic('check', 3)}${t}</span>`;
 
+const BRIEF_FIELD = `<div class="field"><label>Your requirements</label><textarea name="brief" rows="3" placeholder="Topic, guidelines, referencing style or anything else we should know"></textarea></div>`;
+
 function quoteForm(svc = 'Research Paper', sub = SUB_OPTS[0], title = 'Get an instant quote') {
   return `<form class="quote" id="quote">
         <h3>${title}</h3>
@@ -412,6 +414,7 @@ function quoteForm(svc = 'Research Paper', sub = SUB_OPTS[0], title = 'Get an in
           <div class="field"><label>Deadline</label><input type="date"></div>
           <div class="field"><label>WhatsApp / Email</label><input type="text" placeholder="Your contact"></div>
         </div>
+        ${BRIEF_FIELD}
         <button class="btn btn-primary" type="submit">Get my instant quote <span class="arr">${ARR}</span></button>
         <div class="fine"><span>${ic('check', 2.5)}No obligation</span><span>${ic('check', 2.5)}100% confidential</span><span>${ic('check', 2.5)}Matched to an expert</span></div>
       </form>`;
@@ -873,6 +876,10 @@ SUBJECTS.forEach(s => {
 });
 if (!home.includes('class="photo-band"')) {
   home = home.replace('<!-- ================= PROCESS ================= -->', photoBand('assets/img/home-library.webp', 'Real research. Real sources. <span class="serif">Real experts.</span>', ['10+ subjects', '8 regions', '5 years of distinction']) + '\n\n<!-- ================= PROCESS ================= -->');
+}
+// homepage quote form: requirements box above the submit button
+if (!home.includes('name="brief"')) {
+  home = home.replace('<button class="btn btn-primary" type="submit">Get my instant quote', BRIEF_FIELD.replace('<label>', '<label for="f-brief">').replace('<textarea ', '<textarea id="f-brief" ') + '\n        <button class="btn btn-primary" type="submit">Get my instant quote');
 }
 home = home.replace('<select id="f-svc">', '<select id="f-svc" name="service">').replace('<select id="f-sub">', '<select id="f-sub" name="subject">');
 home = home.replace(/<form class="quote" onsubmit="[^"]*">/, '<form class="quote">');
