@@ -398,7 +398,7 @@ function scripts(R, globe) {
 
 const CHECK_CHIP = t => `<span>${ic('check', 3)}${t}</span>`;
 
-const BRIEF_FIELD = `<div class="field"><label>Your requirements</label><textarea name="brief" rows="3" placeholder="Topic, guidelines, referencing style or anything else we should know"></textarea></div>`;
+const BRIEF_FIELD = `<div class="field"><label>Your Requirements</label><textarea name="brief" rows="3" placeholder="Topic, guidelines, referencing style or anything else we should know"></textarea></div>`;
 
 function quoteForm(svc = 'Research Paper', sub = SUB_OPTS[0], title = 'Get an instant quote') {
   return `<form class="quote" id="quote">
