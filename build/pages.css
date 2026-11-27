@@ -227,3 +227,8 @@ a.svc{color:inherit}
 .field textarea{display:block;width:100%;min-height:96px;border:0;border-radius:14px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);padding:14px 16px;color:#fff;font-size:15px;line-height:1.5;outline:none;resize:vertical;transition:box-shadow .3s,background .3s}
 .field textarea::placeholder{color:rgba(255,255,255,.4)}
 .field textarea:focus{box-shadow:inset 0 0 0 1.5px var(--orange);background:rgba(255,255,255,.12)}
+
+/* footer credit */
+.f-bottom .credit{color:rgba(255,255,255,.62);transition:color .3s}
+.f-bottom .credit b{color:#fff;font-weight:700;transition:color .3s}
+.f-bottom .credit:hover,.f-bottom .credit:hover b{color:var(--orange-2)}

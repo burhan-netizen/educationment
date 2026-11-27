@@ -13,8 +13,9 @@ const WA_TEXT = "Hi EducationMent, I'd like a quote for my assignment.";
 const WA_URL = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(WA_TEXT)}`;
 // swap every placeholder link and label for the real contact details
 function finalize(html) {
-  html = html.replace(/<a href="#">(<svg[\s\S]*?<\/svg>)Email: add address<\/a>/g, `<a href="mailto:${EMAIL}">$1${EMAIL}</a>`);
-  html = html.replace(/<a href="#">(<svg[\s\S]*?<\/svg>)WhatsApp: add number<\/a>/g, `<a href="${WA_URL}" target="_blank" rel="noopener">$1${WA_DISPLAY}</a>`);
+  // (?:(?!<\/svg>)[\s\S])* can't run past the end of one icon, so each pattern matches a single link only
+  html = html.replace(/<a href="#">(<svg(?:(?!<\/svg>)[\s\S])*<\/svg>)Email: add address<\/a>/g, `<a href="mailto:${EMAIL}">$1${EMAIL}</a>`);
+  html = html.replace(/<a href="#">(<svg(?:(?!<\/svg>)[\s\S])*<\/svg>)WhatsApp: add number<\/a>/g, `<a href="${WA_URL}" target="_blank" rel="noopener">$1${WA_DISPLAY}</a>`);
   html = html.replace(/<a href="#">(<span class="ci">(?:(?!<\/span>)[\s\S])*?<path d="m22 6-10 7L2 6"\/><\/svg><\/span>)<span><b>Email<\/b><small>Add your email address here<\/small><\/span><\/a>/, `<a href="mailto:${EMAIL}">$1<span><b>Email</b><small>${EMAIL}</small></span></a>`);
   html = html.replace('<small>Add your number here · fastest reply</small>', `<small>${WA_DISPLAY} · fastest reply</small>`);
   html = html.split('[email address]').join(EMAIL).split('[number]').join(WA_DISPLAY);
@@ -374,8 +375,7 @@ function footer(R) {
       </div>
     </div>
     <p class="f-note">EducationMent provides model work written by experts and academic guidance to support students' own learning. Clients are responsible for using our work in line with their institution's academic integrity policies.</p>
-    <div class="f-bottom"><span>© 2026 EducationMent. All rights reserved.</span><span>Design preview v3</span></div>
-    <div class="big-word" aria-hidden="true">Education<span>Ment</span></div>
+    <div class="f-bottom"><span>© 2026 EducationMent. All rights reserved.</span><a class="credit" href="https://www.magolabs.in" target="_blank" rel="noopener">Website by <b>Mago Labs</b></a></div>
   </div>
 </footer>
 <a class="wa" href="#" aria-label="Chat on WhatsApp"><span class="tip">Chat with an expert</span>${WA}</a>
