@@ -299,21 +299,70 @@ const SUB_OPTS = [...SUBJECTS.map(s => s.opt), 'Other'];
 const esc = s => s.replace(/&(?!amp;|lt;|gt;|quot;|#)/g, '&amp;');
 const opts = (list, sel) => list.map(o => `<option${o === sel ? ' selected' : ''}>${esc(o)}</option>`).join('');
 
-function head(R, title, desc, extra = '') {
+/* ======================= SEO: site address, structured data ======================= */
+const SITE = 'https://educationment.vercel.app';
+const AREAS = ['United Kingdom', 'United States', 'Australia', 'United Arab Emirates', 'New Zealand', 'Canada', 'Europe', 'India'];
+const strip = s => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+const attr = s => strip(s).replace(/"/g, '&quot;');
+const ORG_LD = {
+  '@context': 'https://schema.org', '@type': 'Organization', '@id': SITE + '/#org',
+  name: 'EducationMent', url: SITE + '/', logo: SITE + '/assets/icons/icon-512.png', image: SITE + '/assets/og/default.jpg',
+  description: 'Expert academic support for university students: dissertations, research papers, case studies, business plans, presentations and live sessions, written by subject specialists.',
+  email: EMAIL, telephone: '+' + WA_NUM,
+  areaServed: AREAS.map(n => ({ '@type': 'Place', name: n })),
+  contactPoint: [{ '@type': 'ContactPoint', contactType: 'customer support', telephone: '+' + WA_NUM, email: EMAIL, availableLanguage: ['English'],
+    hoursAvailable: { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], opens: '00:00', closes: '23:59' } }],
+};
+const WEBSITE_LD = { '@context': 'https://schema.org', '@type': 'WebSite', '@id': SITE + '/#website', url: SITE + '/', name: 'EducationMent', publisher: { '@id': SITE + '/#org' }, inLanguage: 'en' };
+const crumbLD = list => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: list.map(([name, p], i) => ({ '@type': 'ListItem', position: i + 1, name: strip(name), item: SITE + p })) });
+const faqLD = items => ({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: items.map(([q, a]) => ({ '@type': 'Question', name: strip(q), acceptedAnswer: { '@type': 'Answer', text: strip(a) } })) });
+const serviceLD = (name, desc, p) => ({ '@context': 'https://schema.org', '@type': 'Service', name: strip(name), serviceType: strip(name), description: strip(desc), url: SITE + p,
+  provider: { '@id': SITE + '/#org' }, areaServed: AREAS.map(n => ({ '@type': 'Place', name: n })), audience: { '@type': 'EducationalAudience', educationalRole: 'student' } });
+const SITEMAP = []; // [path, priority] collected as pages are built
+
+// first visit of a session only: show the homepage preloader (fails safe after 4 seconds)
+const LOADER_FLAG = `<script>(function(){var d=document.documentElement;try{if(!sessionStorage.getItem('em-intro'))d.classList.add('show-loader')}catch(e){d.classList.add('show-loader')}setTimeout(function(){d.classList.remove('show-loader')},4000)})();</script>`;
+
+function head(R, title, desc, m = {}) {
+  const p = m.path || '/', url = SITE + p, og = `${SITE}/assets/og/${m.og || 'default'}.jpg`;
+  if (!m.noindex) SITEMAP.push([p, m.priority || 0.7]);
+  const ld = [ORG_LD, ...(m.ld || [])];
+  const t = attr(title), d = attr(desc);
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
-<meta name="description" content="${desc}">
+<meta name="description" content="${d}">
+<meta name="robots" content="${m.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}">
+${m.noindex ? '' : `<link rel="canonical" href="${url}">\n`}<meta name="theme-color" content="#050F27">
+<meta name="author" content="EducationMent">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="EducationMent">
+<meta property="og:locale" content="en_GB">
+<meta property="og:title" content="${t}">
+<meta property="og:description" content="${d}">
+<meta property="og:url" content="${url}">
+<meta property="og:image" content="${og}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${t}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${t}">
+<meta name="twitter:description" content="${d}">
+<meta name="twitter:image" content="${og}">
 <link rel="icon" href="${R}assets/educationment-icon-favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${R}assets/site.css">${extra}
+<link rel="icon" href="${R}assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="${R}assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="${R}site.webmanifest">
+<link rel="preload" href="${R}assets/fonts/jakarta-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${R}assets/fonts/jakarta-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="${R}assets/site.css">
+${m.home ? LOADER_FLAG + '\n' : ''}${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join('\n')}
 </head>
 <body>
+<a class="skip" href="#top">Skip to content</a>
 `;
 }
 
@@ -383,14 +432,13 @@ function footer(R) {
 <!--/FOOTER-->`;
 }
 
-function scripts(R, globe) {
+// all libraries are self hosted; the globe's map code is loaded by site.js only when it is needed
+function scripts(R) {
   return `
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>${globe ? `
-<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>` : ''}
-<script src="${R}assets/site.js"></script>
+<script src="${R}assets/vendor/gsap.min.js" defer></script>
+<script src="${R}assets/vendor/ScrollTrigger.min.js" defer></script>
+<script src="${R}assets/vendor/lenis.min.js" defer></script>
+<script src="${R}assets/site.js" data-root="${R}" defer></script>
 </body>
 </html>
 `;
@@ -398,21 +446,21 @@ function scripts(R, globe) {
 
 const CHECK_CHIP = t => `<span>${ic('check', 3)}${t}</span>`;
 
-const BRIEF_FIELD = `<div class="field"><label>Your Requirements</label><textarea name="brief" rows="3" placeholder="Topic, guidelines, referencing style or anything else we should know"></textarea></div>`;
+const BRIEF_FIELD = `<div class="field"><label for="q-brief">Your Requirements</label><textarea id="q-brief" name="brief" rows="3" placeholder="Topic, guidelines, referencing style or anything else we should know"></textarea></div>`;
 
 function quoteForm(svc = 'Research Paper', sub = SUB_OPTS[0], title = 'Get an instant quote') {
   return `<form class="quote" id="quote">
         <h3>${title}</h3>
         <p class="qsub">Tell us about your project and an expert will reply with a price.</p>
         <div class="tabs" data-i="${svc === 'Presentation & Poster' ? 1 : 0}" role="tablist"><button type="button"${svc === 'Presentation & Poster' ? '' : ' class="on"'}>${ic('pen', 2)}Writing</button><button type="button"${svc === 'Presentation & Poster' ? ' class="on"' : ''}>${ic('slides', 2)}Presentations</button></div>
-        <div class="field"><label>Service</label><select name="service" data-default="${esc(svc === 'Presentation & Poster' ? 'Research Paper' : svc)}">${opts(SVC_OPTS, svc)}</select></div>
+        <div class="field"><label for="q-svc">Service</label><select id="q-svc" name="service" data-default="${esc(svc === 'Presentation & Poster' ? 'Research Paper' : svc)}">${opts(SVC_OPTS, svc)}</select></div>
         <div class="row2">
-          <div class="field"><label>Subject</label><select name="subject">${opts(SUB_OPTS, sub)}</select></div>
-          <div class="field"><label>Word count</label><input type="number" placeholder="e.g. 3000" min="0"></div>
+          <div class="field"><label for="q-sub">Subject</label><select id="q-sub" name="subject">${opts(SUB_OPTS, sub)}</select></div>
+          <div class="field"><label for="q-words">Word count</label><input id="q-words" name="words" type="number" inputmode="numeric" placeholder="e.g. 3000" min="1"></div>
         </div>
         <div class="row2">
-          <div class="field"><label>Deadline</label><input type="date"></div>
-          <div class="field"><label>WhatsApp / Email</label><input type="text" placeholder="Your contact"></div>
+          <div class="field"><label for="q-date">Deadline</label><input id="q-date" name="deadline" type="date"></div>
+          <div class="field"><label for="q-contact">WhatsApp / Email</label><input id="q-contact" name="contact" type="text" autocomplete="email" placeholder="Your contact"></div>
         </div>
         ${BRIEF_FIELD}
         <button class="btn btn-primary" type="submit">Get my instant quote <span class="arr">${ARR}</span></button>
@@ -580,7 +628,8 @@ ${faq([...s.faqs, ...GENERAL_FAQ.slice(0, 3)])}
   </div>
 </section>
 ${cta(R)}`;
-  pages.push([`services/${s.slug}.html`, head(R, `${s.name.replace('&', 'and')} | EducationMent`, esc(s.lead)) + header(R, 'services', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+  pages.push([`services/${s.slug}.html`, head(R, `${s.name.replace('&', 'and')} | EducationMent`, esc(s.lead), { path: `/services/${s.slug}`, og: `svc-${s.slug}`, priority: 0.9,
+    ld: [serviceLD(s.name, s.lead, `/services/${s.slug}`), crumbLD([['Home', '/'], ['Services', '/services'], [s.menu, `/services/${s.slug}`]]), faqLD([...s.faqs, ...GENERAL_FAQ.slice(0, 3)])] }) + header(R, 'services', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
 });
 
 // subject pages
@@ -639,7 +688,9 @@ ${faq([[`Who will work on my ${s.name === 'IT' ? 'IT' : s.name} project?`, `A sp
   </div>
 </section>
 ${cta(R)}`;
-  pages.push([`subjects/${s.slug}.html`, head(R, `${s.name} Assignment Help | EducationMent`, esc(s.lead)) + header(R, 'subjects', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+  pages.push([`subjects/${s.slug}.html`, head(R, `${s.name} Assignment Help | EducationMent`, esc(s.lead), { path: `/subjects/${s0.slug}`, og: `subj-${s0.slug}`, priority: 0.8,
+    ld: [serviceLD(`${s.name} academic support`, s.lead, `/subjects/${s0.slug}`), crumbLD([['Home', '/'], ['Subjects', '/subjects'], [s.name, `/subjects/${s0.slug}`]]),
+      faqLD([[`Who will work on my ${s.name} project?`, `A specialist with a degree in ${s.name}, usually at Master's or PhD level, who knows the conventions and expectations of your field.`], ...GENERAL_FAQ])] }) + header(R, 'subjects', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
 });
 
 // services overview
@@ -661,7 +712,7 @@ ${STATS}
 ${PROCESS}
 ${faq(GENERAL_FAQ)}
 ${cta(R)}`;
-  pages.push(['services.html', head(R, 'Academic Services | EducationMent', 'Dissertations, research papers, proposals, case studies, live sessions, business plans, annotated bibliographies, content writing, presentations and posters.') + header(R, 'services', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+  pages.push(['services.html', head(R, 'Academic Services | EducationMent', 'Dissertations, research papers, proposals, case studies, live sessions, business plans, annotated bibliographies, content writing, presentations and posters.', { path: '/services', og: 'services', priority: 0.9, ld: [crumbLD([['Home', '/'], ['Services', '/services']]), faqLD(GENERAL_FAQ)] }) + header(R, 'services', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
 }
 
 // subjects overview
@@ -686,7 +737,7 @@ ${STATS}
 </section>
 ${PROCESS}
 ${cta(R)}`;
-  pages.push(['subjects.html', head(R, 'Subjects We Cover | EducationMent', 'Expert academic support in International Business Management, Computer Science, Medical, Mathematics, Finance, Sciences, Nursing, Law, Engineering and IT.') + header(R, 'subjects', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+  pages.push(['subjects.html', head(R, 'Subjects We Cover | EducationMent', 'Expert academic support in International Business Management, Computer Science, Medical, Mathematics, Finance, Sciences, Nursing, Law, Engineering and IT.', { path: '/subjects', og: 'subjects', priority: 0.9, ld: [crumbLD([['Home', '/'], ['Subjects', '/subjects']])] }) + header(R, 'subjects', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
 }
 
 // about
@@ -749,7 +800,7 @@ ${STATS}
   </div>
 </section>
 ${cta(R, 'Join thousands of students who <span class="serif">aim higher.</span>', 'contact.html#quote')}`;
-  pages.push(['about.html', head(R, 'About Us | EducationMent', 'Five years, 5,000+ students and 15,000+ projects across eight regions. Meet the team of subject specialists behind EducationMent.') + header(R, 'about', 'contact.html#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R, true)]);
+  pages.push(['about.html', head(R, 'About Us | EducationMent', 'Five years, 5,000+ students and 15,000+ projects across eight regions. Meet the team of subject specialists behind EducationMent.', { path: '/about', og: 'about', priority: 0.7, ld: [crumbLD([['Home', '/'], ['About', '/about']])] }) + header(R, 'about', 'contact.html#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R, true)]);
 }
 
 // contact
@@ -793,7 +844,7 @@ ${cta(R, 'Join thousands of students who <span class="serif">aim higher.</span>'
   </div>
 </section>
 ${faq(GENERAL_FAQ)}`;
-  pages.push(['contact.html', head(R, 'Contact Us | EducationMent', 'Get an instant quote or talk to an expert on WhatsApp, 24/7.') + header(R, 'contact', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+  pages.push(['contact.html', head(R, 'Contact Us | EducationMent', 'Get an instant quote or talk to an expert on WhatsApp, 24/7.', { path: '/contact', og: 'contact', priority: 0.8, ld: [crumbLD([['Home', '/'], ['Contact', '/contact']]), faqLD(GENERAL_FAQ)] }) + header(R, 'contact', '#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
 }
 
 // legal drafts
@@ -807,7 +858,8 @@ function legal(file, title, intro, sections) {
     ${sections.map(([h, ps]) => `<h2>${h}</h2>${ps.map(p => Array.isArray(p) ? `<ul>${p.map(li => `<li>${li}</li>`).join('')}</ul>` : `<p>${p}</p>`).join('')}`).join('\n    ')}
   </div>
 </section>`;
-  pages.push([file, head(R, `${title} | EducationMent`, intro) + header(R, '', 'contact.html#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+  const p = '/' + file.replace('.html', '');
+  pages.push([file, head(R, `${title} | EducationMent`, intro, { path: p, priority: 0.3, ld: [crumbLD([['Home', '/'], [title, p]])] }) + header(R, '', 'contact.html#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
 }
 legal('privacy.html', 'Privacy Policy', 'How EducationMent collects, uses and protects your personal information.', [
   ['Who we are', ['EducationMent ("we", "us") provides academic support services to university students. For questions about this policy, contact us at [email address].']],
@@ -884,7 +936,140 @@ if (!home.includes('name="brief"')) {
 home = home.replace('<select id="f-svc">', '<select id="f-svc" name="service">').replace('<select id="f-sub">', '<select id="f-sub" name="subject">');
 home = home.replace(/<form class="quote" onsubmit="[^"]*">/, '<form class="quote">');
 home = home.replace('<canvas id="ctaCanvas" aria-hidden="true">', '<canvas class="cta-lines" aria-hidden="true">');
+// homepage form fields: names used by validation and autofill
+home = home.replace('<input id="f-wa" type="text"', '<input id="f-wa" name="contact" type="text" autocomplete="email"');
+home = home.replace('<input id="f-date" type="date">', '<input id="f-date" name="deadline" type="date">');
+home = home.replace('<input id="f-words" type="number" placeholder="e.g. 3000" min="0">', '<input id="f-words" name="words" type="number" inputmode="numeric" placeholder="e.g. 3000" min="1">');
+// homepage head (SEO, social, structured data) and self hosted scripts, regenerated on every build
+const homeFaq = [...home.matchAll(/<div class="qa[^"]*"><button>([\s\S]*?)<i><\/i><\/button><div class="a"><p>([\s\S]*?)<\/p>/g)].map(m => [m[1], m[2]]);
+let bodyRest = home.slice(home.indexOf('<body>') + 6).replace(/^\s*<a class="skip"[^>]*>[^<]*<\/a>\s*/, '\n');
+bodyRest = bodyRest.slice(0, bodyRest.indexOf('<script src=')).trimEnd() + '\n' + scripts('');
+home = head('', 'EducationMent | Expert Academic Support for University Students',
+  'Research papers, dissertations, case studies, business plans, presentations and live sessions with subject specialists in 10+ disciplines. Original work, written by humans, for students in the UK, USA, Australia, UAE, New Zealand, Canada, Europe and India.',
+  { path: '/', og: 'default', priority: 1.0, home: true, ld: [WEBSITE_LD, faqLD(homeFaq)] }) + bodyRest.replace(/^\n+/, '');
 fs.writeFileSync(path.join(ROOT, 'index.html'), finalize(home));
+
+/* ======================= 404 page (served by Vercel for any unknown address) ======================= */
+{
+  const R = '/';
+  const body = `${pageHero({ R, crumbs: [['Home', '/index.html'], ['Page not found']], eyebrow: 'Error 404', h1: 'This page has <span class="serif">moved on.</span>', lead: 'The page you were looking for does not exist or has moved. Here are the most useful places to go next.', solo: true, ctas: false })}
+<section class="sec nf">
+  <div class="wrap">
+    <div class="nf-actions reveal">
+      <a href="/index.html" class="btn btn-dark magnetic">Back to the homepage <span class="arr">${ARR}</span></a>
+      <a href="/contact.html#quote" class="btn btn-primary magnetic">Get an instant quote <span class="arr">${ARR}</span></a>
+    </div>
+    <h2 class="nf-h">Popular services</h2>
+    <div class="chips reveal-group">${SERVICES.map(s => `<a href="/services/${s.slug}.html">${ic(s.icon)}${esc(s.menu)}</a>`).join('')}</div>
+    <h2 class="nf-h">Subjects</h2>
+    <div class="chips reveal-group">${SUBJECTS.map(s => `<a href="/subjects/${s.slug}.html">${ic(s.icon)}${esc(s.name)}</a>`).join('')}</div>
+  </div>
+</section>`;
+  pages.push(['404.html', head(R, 'Page not found | EducationMent', 'The page you were looking for does not exist or has moved.', { path: '/404', noindex: true }) + header(R, '', '/contact.html#quote') + `\n<main id="top">\n${body}\n</main>\n` + footer(R) + scripts(R)]);
+}
 
 pages.forEach(([f, html]) => W(f, html));
 console.log('wrote', pages.length, 'pages');
+
+/* ======================= sitemap, robots, llms.txt, web manifest ======================= */
+const today = new Date().toISOString().slice(0, 10);
+const urls = [...new Map(SITEMAP.map(([p, pr]) => [p, pr])).entries()].sort((a, b) => b[1] - a[1]);
+W('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(([p, pr]) => `  <url><loc>${SITE}${p}</loc><lastmod>${today}</lastmod><priority>${pr.toFixed(1)}</priority></url>`).join('\n')}
+</urlset>
+`);
+W('robots.txt', `User-agent: *
+Allow: /
+
+Sitemap: ${SITE}/sitemap.xml
+`);
+W('llms.txt', `# EducationMent
+
+> EducationMent provides expert academic support for university students. Subject specialists write original work, entirely by humans, across 10+ disciplines, and run live 1:1 sessions. Students are served in the United Kingdom, United States, Australia, Dubai (UAE), New Zealand, Canada, Europe and India.
+
+Key facts:
+
+* 5,000+ students supported over the last 5 years
+* 15,000+ projects completed
+* More than 80% of work graded at distinction level
+* 100% pass guarantee on every project
+* Work is written by humans with no AI writing tools, and checked for originality
+* Support on WhatsApp 24/7
+* Work is provided as an expert model to support each student's own learning, in line with their university's academic integrity policy
+
+## Services
+
+${SERVICES.map(s => `* [${s.name}](${SITE}/services/${s.slug}): ${strip(s.short)}`).join('\n')}
+
+## Subjects
+
+${SUBJECTS.map(s => `* [${s.disp || s.name}](${SITE}/subjects/${s.slug}): ${s.topics.slice(0, 4).join(', ')} and more`).join('\n')}
+
+## Company
+
+* [About EducationMent](${SITE}/about): story, values and the regions served
+* [Contact and instant quote](${SITE}/contact): request a quote or message the team
+* [Privacy policy](${SITE}/privacy)
+* [Terms of service](${SITE}/terms)
+
+## Contact
+
+* WhatsApp: ${WA_DISPLAY} (https://wa.me/${WA_NUM})
+* Email: ${EMAIL}
+`);
+W('site.webmanifest', JSON.stringify({
+  name: 'EducationMent', short_name: 'EducationMent', description: 'Expert academic support for university students.',
+  start_url: '/', display: 'standalone', background_color: '#050F27', theme_color: '#050F27',
+  icons: [{ src: '/assets/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/assets/icons/icon-512.png', sizes: '512x512', type: 'image/png' }, { src: '/assets/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
+}, null, 2) + '\n');
+console.log('wrote sitemap.xml (' + urls.length + ' urls), robots.txt, llms.txt, site.webmanifest');
+
+/* ======================= social preview images + app icons (run: node build/build.js --og) ======================= */
+if (process.argv.includes('--og')) (async () => {
+  const LB = path.join(ROOT, '../educationment-logos/final/build/node_modules');
+  const sharp = require(path.join(LB, 'sharp'));
+  const opentype = require(path.join(LB, 'opentype.js'));
+  const FD = path.join(LB, '@fontsource/plus-jakarta-sans/files');
+  const F800 = opentype.loadSync(path.join(FD, 'plus-jakarta-sans-latin-800-normal.woff'));
+  const F700 = opentype.loadSync(path.join(FD, 'plus-jakarta-sans-latin-700-normal.woff'));
+  const rd = p => fs.readFileSync(path.join(ROOT, p));
+  const wr = (p, b) => { fs.mkdirSync(path.dirname(path.join(ROOT, p)), { recursive: true }); fs.writeFileSync(path.join(ROOT, p), b); };
+  const W0 = 1200, H0 = 630;
+  const wrap = (text, font, size, max) => { const out = []; let line = ''; for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (font.getAdvanceWidth(t, size) > max && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; };
+  const textPath = (str, font, x, y, size, fill, track = 0) => { if (!track) return `<path d="${font.getPath(str, x, y, size).toPathData(2)}" fill="${fill}"/>`; let d = '', cx = x; for (const ch of str) { d += font.getPath(ch, cx, y, size).toPathData(2); cx += font.getAdvanceWidth(ch, size) + track; } return `<path d="${d}" fill="${fill}"/>`; };
+  const logo = await sharp(rd('assets/educationment-logo-horizontal-reversed.svg'), { density: 300 }).resize({ height: 92 }).png().toBuffer();
+  async function card(name, eyebrow, title, photo) {
+    let size = 70, lines = wrap(title, F800, size, 760);
+    while (lines.length > 3 && size > 50) { size -= 4; lines = wrap(title, F800, size, 760); }
+    const lh = size * 1.08, top = 330 - (lines.length * lh) / 2 + size * 0.8;
+    let dots = ''; for (let x = 20; x < W0; x += 34) for (let y = 20; y < H0; y += 34) dots += `<circle cx="${x}" cy="${y}" r="1.2" fill="rgba(160,190,240,0.12)"/>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W0}" height="${H0}">
+      <defs><linearGradient id="fade" x1="0" x2="1"><stop offset="0.38" stop-color="#050F27" stop-opacity="1"/><stop offset="0.75" stop-color="#050F27" stop-opacity="0.55"/><stop offset="1" stop-color="#050F27" stop-opacity="0.25"/></linearGradient>
+      <radialGradient id="glow" cx="0.85" cy="0.1" r="0.7"><stop offset="0" stop-color="#1C4AA0" stop-opacity="0.55"/><stop offset="1" stop-color="#050F27" stop-opacity="0"/></radialGradient></defs>
+      <rect width="100%" height="100%" fill="url(#fade)"/><rect width="100%" height="100%" fill="url(#glow)"/>${dots}
+      ${textPath(eyebrow.toUpperCase(), F700, 72, top - size - 18, 22, '#F57C1F', 3)}
+      ${lines.map((l, i) => textPath(l, F800, 72, top + i * lh, size, '#FFFFFF')).join('')}
+      <rect x="72" y="${H0 - 92}" width="300" height="2" fill="rgba(255,255,255,0.15)"/>
+      ${textPath('Written by humans  ·  Plagiarism free  ·  100% pass guarantee', F700, 72, H0 - 54, 22, 'rgba(255,255,255,0.75)')}
+      <rect x="${W0 - 72 - 282}" y="${H0 - 92}" width="282" height="56" rx="28" fill="#F57C1F"/>
+      ${textPath('Get an instant quote', F700, W0 - 72 - 282 + 34, H0 - 56, 22, '#FFFFFF')}
+    </svg>`;
+    const base = photo
+      ? await sharp(rd(photo)).resize(W0, H0, { fit: 'cover' }).modulate({ saturation: 0.6, brightness: 0.75 }).toBuffer()
+      : await sharp({ create: { width: W0, height: H0, channels: 3, background: '#050F27' } }).png().toBuffer();
+    const out = await sharp(base).composite([{ input: Buffer.from(svg) }, { input: logo, left: 56, top: 40 }]).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+    wr(`assets/og/${name}.jpg`, out);
+  }
+  await card('default', 'Expert academic support', 'Academic work, done to a distinction standard.', 'assets/img/home-library.webp');
+  await card('services', 'Our services', 'Every kind of academic work, handled by a specialist.', 'assets/img/svc-research-papers.webp');
+  await card('subjects', '10+ subjects', 'Specialists for every discipline.', 'assets/img/subj-mathematics.webp');
+  await card('about', 'About EducationMent', 'Five years of distinction, one student at a time.', 'assets/img/about-campus.webp');
+  await card('contact', 'Contact us', 'Get an instant quote from a subject expert.', 'assets/img/svc-live-sessions.webp');
+  for (const s of SERVICES) await card(`svc-${s.slug}`, s.name, strip(s.h1), `assets/img/svc-${s.slug}.webp`);
+  for (const s of SUBJECTS) await card(`subj-${s.slug}`, `${s.disp || s.name} experts`, `${s.disp || s.name} support from real specialists.`, `assets/img/subj-${s.slug}.webp`);
+  // app icons from the navy rounded square icon
+  const icon = fs.readFileSync(path.join(ROOT, '../educationment-logos/final/png/educationment-icon-app-1024px.png'));
+  for (const [f, s] of [['icon-512.png', 512], ['icon-192.png', 192], ['apple-touch-icon.png', 180], ['favicon-32.png', 32]]) wr(`assets/icons/${f}`, await sharp(icon).resize(s, s).png().toBuffer());
+  console.log('wrote', 5 + SERVICES.length + SUBJECTS.length, 'social preview images and 4 icons');
+})();

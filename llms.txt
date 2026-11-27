@@ -1,0 +1,50 @@
+# EducationMent
+
+> EducationMent provides expert academic support for university students. Subject specialists write original work, entirely by humans, across 10+ disciplines, and run live 1:1 sessions. Students are served in the United Kingdom, United States, Australia, Dubai (UAE), New Zealand, Canada, Europe and India.
+
+Key facts:
+
+* 5,000+ students supported over the last 5 years
+* 15,000+ projects completed
+* More than 80% of work graded at distinction level
+* 100% pass guarantee on every project
+* Work is written by humans with no AI writing tools, and checked for originality
+* Support on WhatsApp 24/7
+* Work is provided as an expert model to support each student's own learning, in line with their university's academic integrity policy
+
+## Services
+
+* [Thesis & Dissertation Writing](https://educationment.vercel.app/services/thesis-dissertation-writing): Support for every chapter, from proposal to final submission.
+* [Research Papers](https://educationment.vercel.app/services/research-papers): Rigorous papers built on credible, fully referenced sources.
+* [Research Proposals](https://educationment.vercel.app/services/research-proposals): Proposals with clear aims and a sound methodology.
+* [Case Studies](https://educationment.vercel.app/services/case-studies): Sharp analysis using the right frameworks.
+* [Live Sessions](https://educationment.vercel.app/services/live-sessions): 1:1 video sessions with a subject expert.
+* [Business Plans](https://educationment.vercel.app/services/business-plans): Plans with research, financials and strategy.
+* [Annotated Bibliography](https://educationment.vercel.app/services/annotated-bibliography): Sources selected, evaluated and formatted.
+* [Content Writing](https://educationment.vercel.app/services/content-writing): Essays, reports and academic content.
+* [Presentations & Posters](https://educationment.vercel.app/services/presentations-posters): Designed decks and academic posters.
+
+## Subjects
+
+* [International Business Management](https://educationment.vercel.app/subjects/international-business-management): Global strategy, Market entry, Cross cultural management, International marketing and more
+* [Computer Science](https://educationment.vercel.app/subjects/computer-science): Algorithms & data structures, Programming in Python, Java and C++, Machine learning, Artificial intelligence and more
+* [Medical](https://educationment.vercel.app/subjects/medical): Clinical case reports, Anatomy & physiology, Pharmacology, Pathology and more
+* [Mathematics](https://educationment.vercel.app/subjects/mathematics): Calculus, Linear algebra, Statistics & probability, Differential equations and more
+* [Finance](https://educationment.vercel.app/subjects/finance): Financial analysis, Corporate finance, Investment analysis, Valuation and more
+* [Sciences](https://educationment.vercel.app/subjects/sciences): Biology, Chemistry, Physics, Biochemistry and more
+* [Nursing](https://educationment.vercel.app/subjects/nursing): Care plans, Reflective practice, Evidence based practice, Patient safety and more
+* [Law](https://educationment.vercel.app/subjects/law): Contract law, Criminal law, Tort law, Constitutional law and more
+* [Engineering](https://educationment.vercel.app/subjects/engineering): Mechanical engineering, Civil engineering, Electrical & electronic, Chemical engineering and more
+* [Information Technology](https://educationment.vercel.app/subjects/it): Networking, Cybersecurity, Cloud computing, Information systems and more
+
+## Company
+
+* [About EducationMent](https://educationment.vercel.app/about): story, values and the regions served
+* [Contact and instant quote](https://educationment.vercel.app/contact): request a quote or message the team
+* [Privacy policy](https://educationment.vercel.app/privacy)
+* [Terms of service](https://educationment.vercel.app/terms)
+
+## Contact
+
+* WhatsApp: +91 88497 24179 (https://wa.me/918849724179)
+* Email: educationment.in@gmail.com

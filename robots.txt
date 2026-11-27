@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://educationment.vercel.app/sitemap.xml

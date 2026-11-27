@@ -15,6 +15,22 @@ Static marketing site for EducationMent: homepage, 9 service pages, 10 subject p
 | `assets/img/` | Photos (Unsplash, no people). Credits in `assets/img/CREDITS.json` |
 | `build/build.js` | Page generator: all page copy, menus and footer live here |
 | `build/pages.css` | Inner page styles, copied into `assets/site.css` on every build |
+| `assets/vendor/` | Self hosted GSAP, ScrollTrigger, Lenis, d3 and map data (no outside CDNs) |
+| `assets/fonts/` | Self hosted Plus Jakarta Sans |
+| `assets/og/` | Social sharing preview images (1200 x 630), one per page |
+| `assets/icons/` | Favicon, Apple touch icon and app icons |
+| `404.html` | Page not found (Vercel serves it automatically) |
+| `sitemap.xml`, `robots.txt`, `llms.txt`, `site.webmanifest` | Generated on every build |
+
+## SEO
+
+Every page gets a canonical link, Open Graph and Twitter tags, and JSON-LD structured data (Organization, WebSite, Service, BreadcrumbList, FAQPage). The live address is the `SITE` constant at the top of the SEO block in `build/build.js`. Change it if the domain changes, then rebuild.
+
+Social preview images are only regenerated when you ask for them:
+
+```
+node build/build.js --og
+```
 
 ## Editing
 

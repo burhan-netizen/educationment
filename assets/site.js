@@ -1,9 +1,15 @@
 /* EducationMent shared site script. Every block checks its elements exist, so one file serves every page. */
+const ROOT = (document.currentScript && document.currentScript.dataset.root) || '';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// phones, tablets and touch screens get a lighter experience: native scrolling, still backgrounds
+const lite = matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+const finePointer = matchMedia('(pointer: fine)').matches;
 if (reduced) document.documentElement.classList.add('reduced');
+if (lite) document.documentElement.classList.add('lite');
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 function toast(msg){ const t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),3600); }
 window.toast = toast;
+const loadScript = src => new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.append(s); });
 
 /* canvases only redraw while on screen, so scrolling stays smooth */
 const onScreen = new WeakMap();
@@ -11,8 +17,101 @@ const visIO = 'IntersectionObserver' in window ? new IntersectionObserver(es=>es
 const watch = el => { if(visIO){ onScreen.set(el,false); visIO.observe(el); } };
 const hidden = el => onScreen.get(el)===false;
 
-/* ---------- quote forms: send by WhatsApp or email ---------- */
-// web3key: paste the Web3Forms access key here to email every quote request to the inbox automatically
+/* ---------- deadline date picker ---------- */
+(function(){
+  const inputs=$$('input[type=date]'); if(!inputs.length) return;
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const WD=['Mo','Tu','We','Th','Fr','Sa','Su'];
+  const today=()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; };
+  const iso=d=>`${d.getFullYear()}${'-'}${String(d.getMonth()+1).padStart(2,'0')}${'-'}${String(d.getDate()).padStart(2,'0')}`;
+  const fmt=d=>d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  let pop=null, active=null, view=null;
+  inputs.forEach(inp=>{
+    inp.type='text'; inp.readOnly=true; inp.classList.add('dp-input');
+    inp.placeholder='Select your deadline'; inp.setAttribute('inputmode','none'); inp.autocomplete='off';
+    inp.setAttribute('aria-haspopup','dialog');
+    inp.addEventListener('click',()=>open(inp));
+    inp.addEventListener('keydown',e=>{ if(['Enter',' ','ArrowDown'].includes(e.key)){ e.preventDefault(); open(inp); } });
+    const f=inp.form; if(f) f.addEventListener('reset',()=>{ delete inp.dataset.iso; });
+  });
+  function open(inp){
+    active=inp;
+    const sel=inp.dataset.iso ? new Date(inp.dataset.iso+'T00:00') : today();
+    view=new Date(sel.getFullYear(), sel.getMonth(), 1);
+    if(!pop){
+      pop=document.createElement('div'); pop.className='dp'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label','Choose your deadline');
+      document.body.append(pop); pop.addEventListener('click',onClick);
+    }
+    render(); pop.classList.add('show'); place();
+    const focusBtn=$('.dp-grid button.sel',pop)||$('.dp-grid button.today',pop)||$('.dp-grid button:not([disabled])',pop);
+    if(focusBtn) focusBtn.focus({preventScroll:true});
+  }
+  function place(){
+    if(!active) return;
+    const r=active.getBoundingClientRect(), pw=pop.offsetWidth, ph=pop.offsetHeight;
+    let left=Math.min(Math.max(12,r.left), innerWidth-pw-12), top=r.bottom+8;
+    if(top+ph>innerHeight-12 && r.top-ph-8>12) top=r.top-ph-8;
+    pop.style.left=left+'px'; pop.style.top=Math.max(12,top)+'px';
+  }
+  function render(){
+    const t=today(), y=view.getFullYear(), m=view.getMonth();
+    const lead=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate(), sel=active.dataset.iso||'';
+    let cells=''; for(let i=0;i<lead;i++) cells+='<span></span>';
+    for(let d=1; d<=days; d++){
+      const dt=new Date(y,m,d), id=iso(dt), past=dt<t;
+      cells+=`<button type="button" data-iso="${id}"${past?' disabled':''} class="${id===sel?'sel':''}${dt.getTime()===t.getTime()?' today':''}" aria-label="${fmt(dt)}">${d}</button>`;
+    }
+    const canPrev=new Date(y,m,1)>new Date(t.getFullYear(),t.getMonth(),1);
+    pop.innerHTML=`<div class="dp-head"><button type="button" class="dp-nav" data-nav="-1"${canPrev?'':' disabled'} aria-label="Previous month">‹</button><b>${MONTHS[m]} ${y}</b><button type="button" class="dp-nav" data-nav="1" aria-label="Next month">›</button></div>
+      <div class="dp-wd">${WD.map(w=>`<span>${w}</span>`).join('')}</div><div class="dp-grid">${cells}</div>
+      <div class="dp-quick">${[['In 3 days',3],['In 1 week',7],['In 2 weeks',14],['In 1 month',30]].map(([l,n])=>`<button type="button" data-add="${n}">${l}</button>`).join('')}</div>`;
+  }
+  function pick(d){ active.dataset.iso=iso(d); active.value=fmt(d); active.dispatchEvent(new Event('input',{bubbles:true})); close(); active.focus({preventScroll:true}); }
+  function onClick(e){
+    const b=e.target.closest('button'); if(!b || b.disabled) return;
+    if(b.dataset.nav){ view.setMonth(view.getMonth()+ +b.dataset.nav); render(); place(); return; }
+    if(b.dataset.iso){ pick(new Date(b.dataset.iso+'T00:00')); return; }
+    if(b.dataset.add){ const d=today(); d.setDate(d.getDate()+ +b.dataset.add); pick(d); }
+  }
+  function close(){ if(pop) pop.classList.remove('show'); }
+  document.addEventListener('pointerdown',e=>{ if(pop && pop.classList.contains('show') && !pop.contains(e.target) && e.target!==active) close(); });
+  addEventListener('keydown',e=>{ if(e.key==='Escape' && pop && pop.classList.contains('show')){ close(); active && active.focus(); } });
+  addEventListener('scroll',()=>{ if(pop && pop.classList.contains('show')) place(); },{passive:true});
+  addEventListener('resize',()=>{ if(pop && pop.classList.contains('show')) place(); });
+})();
+
+/* ---------- form validation ---------- */
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+function setErr(el,msg){
+  const wrap=el.closest('.field, .cf-grid > div')||el.parentElement;
+  let m=wrap.querySelector('.f-err');
+  if(msg){
+    el.classList.add('invalid'); el.setAttribute('aria-invalid','true');
+    if(!m){ m=document.createElement('small'); m.className='f-err'; m.id=(el.id||('fld'+Math.random().toString(36).slice(2,8)))+'-err'; m.setAttribute('role','alert'); wrap.append(m); }
+    m.textContent=msg; el.setAttribute('aria-describedby',m.id);
+  } else {
+    el.classList.remove('invalid'); el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); if(m) m.remove();
+  }
+}
+function validate(f){
+  const bad=[];
+  const chk=(el,msg)=>{ if(!el) return; setErr(el,msg); if(msg) bad.push(el); };
+  const name=$('#c-name',f), contact=$('[name=contact], #f-wa, #c-contact',f), date=$('.dp-input',f), words=$('input[type=number]',f);
+  if(name) chk(name, name.value.trim().length<2 ? 'Please enter your name.' : '');
+  if(contact){
+    const v=contact.value.trim(), digits=v.replace(/\D/g,'');
+    chk(contact, !v ? 'Add your WhatsApp number or email so we can reply.'
+      : /@/.test(v) ? (EMAIL_RE.test(v) ? '' : 'That email address looks incomplete.')
+      : (/^[+()\d\s.]+$/.test(v) && digits.length>=8 && digits.length<=15) ? '' : 'Enter a WhatsApp number with country code, or an email.');
+  }
+  if(date) chk(date, date.dataset.iso ? '' : 'Choose your deadline.');
+  if(words && words.value) chk(words, (+words.value<1 || +words.value>200000) ? 'Enter a word count between 1 and 200,000.' : '');
+  if(bad.length) bad[0].focus();
+  return !bad.length;
+}
+
+/* ---------- quote forms: emailed via Web3Forms, with WhatsApp or email as a fallback ---------- */
+// web3key: Web3Forms access key; every quote request is emailed to the inbox automatically
 const CONTACT = { wa:'918849724179', email:'educationment.in@gmail.com', web3key:'f97c0d3a-3ec3-4cf6-b778-f1fac45570f7' };
 function formSummary(f){
   const lines=[];
@@ -77,13 +176,14 @@ async function emailBrief(f, lines){
   if(!r.ok || !j.success) throw new Error(j.message||'send failed');
 }
 $$('form.quote, form.contact-form').forEach(f=>{
+  f.noValidate=true;
   // hidden spam trap for bots; real visitors never see or tick it
-  f.insertAdjacentHTML('beforeend','<input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" style="display:none">');
+  f.insertAdjacentHTML('beforeend','<input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true" style="display:none">');
+  f.addEventListener('input',e=>{ if(e.target.classList && e.target.classList.contains('invalid')) setErr(e.target,''); });
   f.addEventListener('submit',async e=>{
     e.preventDefault();
+    if(!validate(f)) return;
     const lines=formSummary(f);
-    const typed=$$('input:not([type=file]):not([name=botcheck]), textarea',f).some(el=>el.value.trim());
-    if(!typed){ toast('Please add a few details, such as your deadline or contact, first.'); return; }
     if(!CONTACT.web3key){ sendModal(lines); return; }
     sendModal(lines,'sending');
     try{ await emailBrief(f,lines); sendModal(lines,'sent'); f.reset(); }
@@ -105,58 +205,67 @@ $$('.cf-drop').forEach(d=>{ const inp=$('input[type=file]',d), b=$('b',d); if(in
     ['A live session with my statistics expert finally made the analysis click for me.','D. N.','BSc Mathematics · Europe','#F59E0B'],
     ['Professional from the first message to delivery. I\'ve recommended them to my whole cohort.','P. S.','MSc Computer Science · India','#10B981'],
   ];
-  const star = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9z"/></svg>';
-  const card=([q,n,w,c])=>`<article class="rev"><div class="top"><span class="stars">${star.repeat(5)}</span><span class="chip">Sample review</span></div><blockquote>“${q}”</blockquote><div class="who"><i style="background:${c}">${n.replace(/[^A-Z]/g,'')}</i><div><b>${n}</b><span>${w}</span></div></div></article>`;
+  const star = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9z"/></svg>';
+  const card=([q,n,w,c])=>`<article class="rev"><div class="top"><span class="stars" aria-label="5 stars">${star.repeat(5)}</span><span class="chip">Sample review</span></div><blockquote>“${q}”</blockquote><div class="who"><i style="background:${c}" aria-hidden="true">${n.replace(/[^A-Z]/g,'')}</i><div><b>${n}</b><span>${w}</span></div></div></article>`;
   const half=Math.ceil(REVIEWS.length/2);
   [REVIEWS.slice(0,half),REVIEWS.slice(half)].forEach((set,i)=>{
     const cards=set.map(card).join('');
-    host.insertAdjacentHTML('beforeend',`<div class="rev-row ${i?'r2':''}"><div class="rev-track">${cards}${cards}${cards}${cards}</div></div>`);
+    host.insertAdjacentHTML('beforeend',`<div class="rev-row ${i?'r2':''}"><div class="rev-track">${cards}<div class="rev-dup" aria-hidden="true" style="display:contents">${cards}${cards}${cards}</div></div></div>`);
   });
 })();
 
 /* ---------- FAQ accordions ---------- */
-$$('.qa').forEach(qa=>{
-  const a=$('.a',qa);
+$$('.qa').forEach((qa,n)=>{
+  const a=$('.a',qa), btn=$('button',qa);
+  a.id=a.id||`faq-a-${n}`; btn.setAttribute('aria-controls',a.id); btn.setAttribute('aria-expanded',qa.classList.contains('open'));
   if(qa.classList.contains('open')) a.style.height='auto';
-  $('button',qa).addEventListener('click',()=>{
+  btn.addEventListener('click',()=>{
     const open=qa.classList.contains('open'), group=qa.parentElement;
-    $$('.qa.open',group).forEach(o=>{ if(o!==qa){ const oa=$('.a',o); oa.style.height=oa.scrollHeight+'px'; requestAnimationFrame(()=>oa.style.height='0'); o.classList.remove('open'); }});
+    $$('.qa.open',group).forEach(o=>{ if(o!==qa){ const oa=$('.a',o); oa.style.height=oa.scrollHeight+'px'; requestAnimationFrame(()=>oa.style.height='0'); o.classList.remove('open'); $('button',o).setAttribute('aria-expanded','false'); }});
     if(open){ a.style.height=a.scrollHeight+'px'; requestAnimationFrame(()=>a.style.height='0'); qa.classList.remove('open'); }
     else { qa.classList.add('open'); a.style.height=a.scrollHeight+'px'; a.addEventListener('transitionend',()=>{ if(qa.classList.contains('open')) a.style.height='auto'; },{once:true}); }
+    btn.setAttribute('aria-expanded',!open);
   });
 });
 
 /* ---------- quote tabs ---------- */
 $$('.quote .tabs').forEach(tabs=>{
   const sel=$('select[name=service]',tabs.closest('form'));
-  $$('button',tabs).forEach((b,i,all)=>b.addEventListener('click',()=>{
-    all.forEach(x=>x.classList.remove('on')); b.classList.add('on'); tabs.dataset.i=i;
-    if(sel) sel.value = i ? 'Presentation & Poster' : (sel.dataset.default||'Research Paper');
-  }));
+  $$('button',tabs).forEach((b,i,all)=>{
+    b.setAttribute('aria-pressed',b.classList.contains('on'));
+    b.addEventListener('click',()=>{
+      all.forEach(x=>{ x.classList.remove('on'); x.setAttribute('aria-pressed','false'); }); b.classList.add('on'); b.setAttribute('aria-pressed','true'); tabs.dataset.i=i;
+      if(sel) sel.value = i ? 'Presentation & Poster' : (sel.dataset.default||'Research Paper');
+    });
+  });
 });
 
 /* ---------- menus ---------- */
-const burger=$('.burger');
-if(burger) burger.addEventListener('click',()=>document.body.classList.toggle('menu-open'));
-$$('.mobile-menu a').forEach(a=>a.addEventListener('click',()=>document.body.classList.remove('menu-open')));
+const burger=$('.burger'), mobileMenu=$('.mobile-menu');
+const setMenu=open=>{ document.body.classList.toggle('menu-open',open); if(burger){ burger.setAttribute('aria-expanded',open); burger.setAttribute('aria-label',open?'Close menu':'Open menu'); } if(mobileMenu) mobileMenu.setAttribute('aria-hidden',!open); };
+if(burger){ burger.setAttribute('aria-expanded','false'); burger.addEventListener('click',()=>setMenu(!document.body.classList.contains('menu-open'))); }
+$$('.mobile-menu a').forEach(a=>a.addEventListener('click',()=>setMenu(false)));
 $$('.has-mega').forEach(li=>{
-  let t; const open=()=>{ clearTimeout(t); $$('.has-mega.open').forEach(o=>o!==li&&o.classList.remove('open')); li.classList.add('open'); };
-  const close=()=>{ t=setTimeout(()=>li.classList.remove('open'),140); };
+  const top=$('a',li); if(top){ top.setAttribute('aria-haspopup','true'); top.setAttribute('aria-expanded','false'); }
+  let t; const open=()=>{ clearTimeout(t); $$('.has-mega.open').forEach(o=>{ if(o!==li){ o.classList.remove('open'); $('a',o).setAttribute('aria-expanded','false'); } }); li.classList.add('open'); top && top.setAttribute('aria-expanded','true'); };
+  const close=()=>{ t=setTimeout(()=>{ li.classList.remove('open'); top && top.setAttribute('aria-expanded','false'); },140); };
   li.addEventListener('pointerenter',open); li.addEventListener('pointerleave',close);
-  li.addEventListener('focusin',open); li.addEventListener('focusout',e=>{ if(!li.contains(e.relatedTarget)) li.classList.remove('open'); });
+  li.addEventListener('focusin',open); li.addEventListener('focusout',e=>{ if(!li.contains(e.relatedTarget)){ li.classList.remove('open'); top && top.setAttribute('aria-expanded','false'); } });
 });
-addEventListener('keydown',e=>{ if(e.key==='Escape') $$('.has-mega.open').forEach(o=>o.classList.remove('open')); });
+addEventListener('keydown',e=>{ if(e.key==='Escape'){ $$('.has-mega.open').forEach(o=>o.classList.remove('open')); if(document.body.classList.contains('menu-open')) setMenu(false); } });
 
-/* ---------- hero dot grid ---------- */
+/* ---------- hero dot grid (animated on desktop, still on phones) ---------- */
 $$('canvas.grid').forEach(c=>{
   const x=c.getContext('2d'); let w,h,dpr,mx=-999,my=-999,t=0;
-  function size(){ dpr=Math.min(devicePixelRatio,2); w=c.clientWidth; h=c.clientHeight; c.width=w*dpr; c.height=h*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
-  size(); addEventListener('resize',size);
-  c.parentElement.addEventListener('pointermove',e=>{ const r=c.getBoundingClientRect(); mx=e.clientX-r.left; my=e.clientY-r.top; });
-  c.parentElement.addEventListener('pointerleave',()=>{mx=my=-999});
+  function size(){ dpr=Math.min(devicePixelRatio,lite?1.5:2); w=c.clientWidth; h=c.clientHeight; c.width=w*dpr; c.height=h*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
+  size(); addEventListener('resize',()=>{ size(); if(lite||reduced) draw(); });
+  if(finePointer){
+    c.parentElement.addEventListener('pointermove',e=>{ const r=c.getBoundingClientRect(); mx=e.clientX-r.left; my=e.clientY-r.top; });
+    c.parentElement.addEventListener('pointerleave',()=>{mx=my=-999});
+  }
   const G=34;
   watch(c);
-  (function draw(){
+  function draw(){
     if(hidden(c)){ requestAnimationFrame(draw); return; }
     x.clearRect(0,0,w,h); t+=0.006;
     for(let gx=G/2; gx<w; gx+=G) for(let gy=G/2; gy<h; gy+=G){
@@ -166,15 +275,29 @@ $$('canvas.grid').forEach(c=>{
       x.fillStyle=near>0.02?`rgba(255,155,78,${a})`:`rgba(160,190,240,${a})`;
       x.beginPath(); x.arc(gx,gy,1+near*1.6,0,6.283); x.fill();
     }
-    if(!reduced) requestAnimationFrame(draw);
-  })();
+    if(!reduced && !lite) requestAnimationFrame(draw);
+  }
+  draw();
 });
 
-/* ---------- globe: real continents, great circle routes ---------- */
-(async function(){
-  const c=$('#globe'); if(!c || !window.d3) return;
+/* ---------- globe: loads its map code only when scrolled near ---------- */
+(function(){
+  const c=$('#globe'); if(!c) return;
+  let started=false;
+  const go=async()=>{
+    if(started) return; started=true;
+    try{
+      if(!(window.d3 && d3.geoPath)){ await loadScript(ROOT+'assets/vendor/d3-array.min.js'); await loadScript(ROOT+'assets/vendor/d3-geo.min.js'); }
+      if(!window.topojson) await loadScript(ROOT+'assets/vendor/topojson-client.min.js');
+      initGlobe(c);
+    }catch(e){ /* the regions list still works without the globe */ }
+  };
+  if('IntersectionObserver' in window){ const io=new IntersectionObserver(es=>{ if(es.some(e=>e.isIntersecting)){ io.disconnect(); go(); } },{rootMargin:'600px'}); io.observe(c); }
+  else go();
+})();
+async function initGlobe(c){
   const x=c.getContext('2d'); let S=0,dpr=1;
-  function size(){ dpr=Math.min(devicePixelRatio,2); S=c.clientWidth; c.width=S*dpr; c.height=S*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
+  function size(){ dpr=Math.min(devicePixelRatio,lite?1.5:2); S=c.clientWidth; c.width=S*dpr; c.height=S*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
   size(); addEventListener('resize',size);
   const PLACES=[
     {name:'United Kingdom',ll:[-0.1,51.5],left:true},{name:'United States',ll:[-74,40.7]},{name:'Australia',ll:[151.2,-33.9],left:true},
@@ -184,13 +307,13 @@ $$('canvas.grid').forEach(c=>{
   const proj=d3.geoOrthographic().clipAngle(90).precision(0.4), path=d3.geoPath(proj,x), grat=d3.geoGraticule10();
   let land=null, dots=[];
   try{
-    const topo=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json').then(r=>r.json());
+    const topo=await fetch(ROOT+'assets/vendor/land-110m.json').then(r=>r.json());
     land=topojson.feature(topo,topo.objects.land);
     const mw=1080,mh=540,m=document.createElement('canvas'); m.width=mw; m.height=mh;
     const mc=m.getContext('2d',{willReadFrequently:true});
     const eq=d3.geoEquirectangular().scale(mw/(2*Math.PI)).translate([mw/2,mh/2]);
     mc.fillStyle='#000'; mc.beginPath(); d3.geoPath(eq,mc)(land); mc.fill();
-    const data=mc.getImageData(0,0,mw,mh).data, step=1.35;
+    const data=mc.getImageData(0,0,mw,mh).data, step=lite?2.2:1.35;
     for(let lat=-58; lat<=84; lat+=step){
       const n=Math.max(1,Math.round(360*Math.cos(lat*Math.PI/180)/step));
       for(let i=0;i<n;i++){
@@ -231,7 +354,7 @@ $$('canvas.grid').forEach(c=>{
     if(land){
       x.beginPath(); path(land); x.fillStyle='rgba(90,140,230,.16)'; x.fill();
       x.strokeStyle='rgba(150,190,255,.22)'; x.lineWidth=.7; x.stroke();
-      const ds=Math.max(1.1,R/260);
+      const ds=Math.max(1.1,R/260)*(lite?1.4:1);
       for(const d of dots){ const dist=d3.geoDistance(d,centre); if(dist>1.52) continue; const p=proj(d); x.fillStyle=`rgba(190,215,255,${0.25+Math.cos(dist)*0.6})`; x.fillRect(p[0]-ds/2,p[1]-ds/2,ds,ds); }
     }
     x.beginPath(); x.arc(S/2,S/2,R,0,6.283); x.strokeStyle='rgba(140,185,255,.35)'; x.lineWidth=1.2; x.stroke();
@@ -240,9 +363,10 @@ $$('canvas.grid').forEach(c=>{
       const on=hl===i||hl===7;
       x.beginPath(); path({type:'LineString',coordinates:[HUB,r.p.ll]});
       x.strokeStyle=on?'rgba(255,160,90,.95)':'rgba(245,124,31,.55)'; x.lineWidth=on?2.6:1.6;
-      x.shadowColor='rgba(245,124,31,.8)'; x.shadowBlur=on?14:6; x.stroke(); x.shadowBlur=0;
+      if(!lite){ x.shadowColor='rgba(245,124,31,.8)'; x.shadowBlur=on?14:6; }
+      x.stroke(); x.shadowBlur=0;
       const pt=r.interp(((t*0.22)+i*0.17)%1);
-      if(d3.geoDistance(pt,centre)<1.5){ const q=proj(pt); x.fillStyle='#FFE2CC'; x.shadowColor='#F57C1F'; x.shadowBlur=12; x.beginPath(); x.arc(q[0],q[1],2.6,0,6.283); x.fill(); x.shadowBlur=0; }
+      if(d3.geoDistance(pt,centre)<1.5){ const q=proj(pt); x.fillStyle='#FFE2CC'; x.beginPath(); x.arc(q[0],q[1],2.6,0,6.283); x.fill(); }
     });
     const font=getComputedStyle(document.documentElement).getPropertyValue('--sans');
     PLACES.forEach((p,i)=>{
@@ -261,15 +385,15 @@ $$('canvas.grid').forEach(c=>{
     if(!reduced) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-})();
+}
 
-/* ---------- CTA flowing lines ---------- */
+/* ---------- CTA flowing lines (still on phones) ---------- */
 $$('canvas.cta-lines').forEach(c=>{
   const x=c.getContext('2d'); let w,h,dpr,t=0;
-  function size(){ dpr=Math.min(devicePixelRatio,2); w=c.clientWidth; h=c.clientHeight; c.width=w*dpr; c.height=h*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
-  size(); addEventListener('resize',size);
+  function size(){ dpr=Math.min(devicePixelRatio,lite?1.5:2); w=c.clientWidth; h=c.clientHeight; c.width=w*dpr; c.height=h*dpr; x.setTransform(dpr,0,0,dpr,0,0); }
+  size(); addEventListener('resize',()=>{ size(); if(lite||reduced) draw(); });
   watch(c);
-  (function draw(){
+  function draw(){
     if(hidden(c)){ requestAnimationFrame(draw); return; }
     t+=0.004; x.clearRect(0,0,w,h);
     for(let i=0;i<22;i++){
@@ -277,12 +401,13 @@ $$('canvas.cta-lines').forEach(c=>{
       for(let px=0; px<=w; px+=12){ const y=h*0.5+Math.sin(px*0.004+t*2+i*0.25)*h*0.18+Math.cos(px*0.002-t+i*0.4)*h*0.12+(i-11)*9; px?x.lineTo(px,y):x.moveTo(px,y); }
       x.strokeStyle=i%5===0?'rgba(245,124,31,.22)':'rgba(140,175,240,.05)'; x.lineWidth=1; x.stroke();
     }
-    if(!reduced) requestAnimationFrame(draw);
-  })();
+    if(!reduced && !lite) requestAnimationFrame(draw);
+  }
+  draw();
 });
 
-/* ---------- card spotlight + tilt ---------- */
-$$('.tilt').forEach(el=>{
+/* ---------- card spotlight + tilt (mouse only) ---------- */
+if(finePointer) $$('.tilt').forEach(el=>{
   el.addEventListener('pointermove',e=>{
     const r=el.getBoundingClientRect(), px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
     el.style.setProperty('--mx',px*100+'%'); el.style.setProperty('--my',py*100+'%');
@@ -292,7 +417,7 @@ $$('.tilt').forEach(el=>{
 });
 
 /* ---------- magnetic buttons ---------- */
-if(!reduced && matchMedia('(pointer:fine)').matches){
+if(!reduced && finePointer){
   $$('.magnetic').forEach(b=>{
     b.addEventListener('pointermove',e=>{ const r=b.getBoundingClientRect(); b.style.transform=`translate(${(e.clientX-r.left-r.width/2)*0.18}px,${(e.clientY-r.top-r.height/2)*0.12}px)`; });
     b.addEventListener('pointerleave',()=>{ b.style.transition='transform .6s cubic-bezier(.22,1,.36,1), box-shadow .4s'; b.style.transform=''; setTimeout(()=>b.style.transition='',600); });
@@ -311,48 +436,59 @@ addEventListener('scroll',()=>{ const n=$('#nav'); if(n) n.classList.toggle('scr
     stg.style.opacity=0; setTimeout(()=>{ stg.textContent=STAGES[i-1]; stg.style.opacity=1; i=i>=5?1:i+1; },250);
     setTimeout(tick, i===5?2600:1500);
   }
-  setTimeout(tick, reduced?0:2600);
+  setTimeout(tick, reduced?0:1600);
 })();
 
 /* ---------- GSAP motion ---------- */
+const endIntro=()=>{ document.documentElement.classList.remove('show-loader'); const l=$('.loader'); if(l) l.style.display='none'; };
 if (window.gsap && !reduced) {
   gsap.registerPlugin(ScrollTrigger);
   const has=s=>!!$(s);
-  if (window.Lenis){
+  if (window.Lenis && !lite){
     const lenis=new Lenis({lerp:0.12,smoothWheel:true,wheelMultiplier:1});
     lenis.on('scroll',ScrollTrigger.update);
     gsap.ticker.add(t=>lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0);
     $$('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{ const id=a.getAttribute('href'); if(id.length>1 && $(id)){ e.preventDefault(); lenis.scrollTo(id,{offset:-90}); } }));
     if(location.hash && $(location.hash)) setTimeout(()=>lenis.scrollTo(location.hash,{offset:-90,immediate:true}),60);
+  } else {
+    document.documentElement.classList.add('native-smooth');
   }
   gsap.to('.progress',{scaleX:1,ease:'none',scrollTrigger:{start:0,end:'max',scrub:true}});
 
-  if(has('.loader') && has('#ul')){
-    /* homepage: preloader then hero intro */
+  if(has('#ul')){
+    /* homepage: short preloader on the first visit of a session, then the hero intro */
+    const intro=document.documentElement.classList.contains('show-loader') && has('.loader');
+    try{ sessionStorage.setItem('em-intro','1'); }catch(e){}
     const ul=$('#ul'), L=ul.getTotalLength();
     gsap.set(ul,{strokeDasharray:L,strokeDashoffset:L});
-    gsap.set('.loader',{clipPath:'inset(0 0 0% 0)'});
-    gsap.set('.loader .word span',{yPercent:115});
-    const pctEl=$('#loaderPct'), pct={v:0};
-    const tl=gsap.timeline({defaults:{ease:'expo.out'},paused:true});
-    tl.to('.loader .mark',{opacity:1,y:0,duration:.7})
-      .to('.loader .word span',{yPercent:0,duration:.9,stagger:.035},'-=.45')
-      .to('.loader .meta',{opacity:1,duration:.4},'-=.7')
-      .to('.loader .bar i',{scaleX:1,duration:1.1,ease:'power2.inOut'},'<')
-      .to(pct,{v:100,duration:1.1,ease:'power2.inOut',onUpdate:()=>pctEl.textContent=Math.round(pct.v)+'%'},'<')
-      .to('.loader .brand',{y:-24,opacity:0,duration:.5,ease:'power2.in'},'+=.15')
-      .to('.loader',{clipPath:'inset(0 0 100% 0)',duration:.9,ease:'expo.inOut'},'-=.15')
-      .set('.loader',{display:'none'})
-      .from('.hero h1 .line>span',{yPercent:110,rotate:3,duration:1.2,stagger:.1},'-=.45')
+    const tl=gsap.timeline({defaults:{ease:'expo.out'},paused:true,onComplete:endIntro});
+    if(intro){
+      gsap.set('.loader',{clipPath:'inset(0 0 0% 0)'});
+      gsap.set('.loader .word span',{yPercent:115});
+      const pctEl=$('#loaderPct'), pct={v:0};
+      tl.to('.loader .mark',{opacity:1,y:0,duration:.45})
+        .to('.loader .word span',{yPercent:0,duration:.6,stagger:.02},'-=.3')
+        .to('.loader .meta',{opacity:1,duration:.25},'-=.5')
+        .to('.loader .bar i',{scaleX:1,duration:.7,ease:'power2.inOut'},'<')
+        .to(pct,{v:100,duration:.7,ease:'power2.inOut',onUpdate:()=>pctEl.textContent=Math.round(pct.v)+'%'},'<')
+        .to('.loader .brand',{y:-20,opacity:0,duration:.3,ease:'power2.in'},'+=.05')
+        .to('.loader',{clipPath:'inset(0 0 100% 0)',duration:.6,ease:'expo.inOut'},'-=.1')
+        .add(endIntro);
+    } else {
+      endIntro();
+    }
+    tl.from('.hero h1 .line>span',{yPercent:110,rotate:3,duration:1.1,stagger:.08},intro?'-=.35':0)
       .to(ul,{strokeDashoffset:0,duration:1,ease:'power3.inOut'},'-=.6')
       .from('.h-fade',{y:30,opacity:0,duration:1,stagger:.08},'-=1')
       .from('.quote',{y:60,opacity:0,duration:1.2},'-=1')
       .from('.fc-human',{x:-40,opacity:0,duration:1},'-=.8')
       .from('.fc-track',{y:40,opacity:0,duration:1},'-=.85')
       .from('.marquee',{opacity:0,duration:1},'-=.8');
-    Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1200))]).then(()=>tl.play());
-    gsap.to('.fc-human',{y:-12,duration:3,repeat:-1,yoyo:true,ease:'sine.inOut',delay:3});
-    gsap.to('.fc-track',{y:10,duration:3.6,repeat:-1,yoyo:true,ease:'sine.inOut',delay:3});
+    Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,600))]).then(()=>tl.play());
+    if(!lite){
+      gsap.to('.fc-human',{y:-12,duration:3,repeat:-1,yoyo:true,ease:'sine.inOut',delay:3});
+      gsap.to('.fc-track',{y:10,duration:3.6,repeat:-1,yoyo:true,ease:'sine.inOut',delay:3});
+    }
     gsap.matchMedia().add('(min-width:1101px)',()=>{
       gsap.to('.hero-grid',{y:-60,opacity:.4,scrollTrigger:{trigger:'.hero',start:'center top',end:'bottom top',scrub:true}});
     });
@@ -363,8 +499,8 @@ if (window.gsap && !reduced) {
       .from('.page-hero .quote, .page-hero .ph-card',{y:50,opacity:0,duration:1.2},'-=.9');
   }
   if(has('.ph-bg')) gsap.from('.ph-bg',{scale:1.12,opacity:0,duration:2.4,ease:'expo.out'});
-  $$('.pb-frame img').forEach(img=>gsap.fromTo(img,{yPercent:-6},{yPercent:6,ease:'none',scrollTrigger:{trigger:img.parentElement,start:'top bottom',end:'bottom top',scrub:true}}));
-  if(has('.hero .orb.o1')) gsap.to('.hero .orb.o1',{yPercent:30,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+  if(!lite) $$('.pb-frame img').forEach(img=>gsap.fromTo(img,{yPercent:-6},{yPercent:6,ease:'none',scrollTrigger:{trigger:img.parentElement,start:'top bottom',end:'bottom top',scrub:true}}));
+  if(has('.hero .orb.o1') && !lite) gsap.to('.hero .orb.o1',{yPercent:30,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
 
   $$('h2.split').forEach(h=>{
     const walk=node=>{ [...node.childNodes].forEach(n=>{
@@ -401,10 +537,9 @@ if (window.gsap && !reduced) {
   }
   if(has('.seal .spin')) gsap.to('.seal .spin',{rotate:360,duration:20,repeat:-1,ease:'none'});
   if(has('.cta-box')) gsap.from('.cta-box',{scale:.92,duration:1.4,ease:'expo.out',scrollTrigger:{trigger:'.cta-box',start:'top 85%'}});
-  if(has('.big-word')) gsap.from('.big-word',{yPercent:40,opacity:0,duration:1.6,ease:'expo.out',scrollTrigger:{trigger:'.big-word',start:'top 98%'}});
 } else {
   $$('.count').forEach(el=>el.textContent=(+el.dataset.to).toLocaleString('en'));
   $$('.step').forEach(s=>s.classList.add('on'));
-  const l=$('.loader'); if(l) l.style.display='none';
+  endIntro();
   $$('.steps .rail i').forEach(i=>i.style.transform='scaleX(1)');
 }
