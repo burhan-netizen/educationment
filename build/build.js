@@ -1073,3 +1073,17 @@ if (process.argv.includes('--og')) (async () => {
   for (const [f, s] of [['icon-512.png', 512], ['icon-192.png', 192], ['apple-touch-icon.png', 180], ['favicon-32.png', 32]]) wr(`assets/icons/${f}`, await sharp(icon).resize(s, s).png().toBuffer());
   console.log('wrote', 5 + SERVICES.length + SUBJECTS.length, 'social preview images and 4 icons');
 })();
+
+/* ======================= cache busting: tag site.css and site.js with a content hash ======================= */
+{
+  const crypto = require('crypto');
+  const hash = f => crypto.createHash('md5').update(fs.readFileSync(path.join(ROOT, f))).digest('hex').slice(0, 8);
+  const v = { css: hash('assets/site.css'), js: hash('assets/site.js') };
+  const htmls = []; (function walk(d) { for (const f of fs.readdirSync(d)) { if (['build', 'node_modules', '.git'].includes(f)) continue; const p = path.join(d, f); if (fs.statSync(p).isDirectory()) walk(p); else if (f.endsWith('.html')) htmls.push(p); } })(ROOT);
+  for (const p of htmls) {
+    const h = fs.readFileSync(p, 'utf8');
+    const n = h.replace(/(assets\/site\.(css|js))(\?v=[a-f0-9]+)?"/g, (m, file, ext) => `${file}?v=${v[ext]}"`);
+    if (n !== h) fs.writeFileSync(p, n);
+  }
+  console.log('versioned site.css', v.css, 'and site.js', v.js, 'in', htmls.length, 'pages');
+}

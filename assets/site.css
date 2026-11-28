@@ -743,3 +743,7 @@ footer{color:rgba(255,255,255,.72)}
 .f-contact a{white-space:nowrap}
 @media (min-width:1101px){.f-grid.f5{grid-template-columns:1.3fr 1fr 1fr .9fr max-content}}
 .f-contact a svg{flex:none;width:18px;height:18px}
+/* guarantee seal: spin locked to the centre of the SVG, no script needed */
+.seal .spin{transform-box:view-box;transform-origin:50% 50%;animation:sealspin 20s linear infinite}
+@keyframes sealspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.seal .spin{animation:none}}
